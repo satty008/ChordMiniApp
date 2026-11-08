@@ -9,6 +9,7 @@ services:
     container_name: chordmini-frontend
     ports:
       - "3100:3000"
+    # NEXT_PUBLIC_BASE_URL (the public https URL users open) comes from .env.docker
     env_file: .env.docker
     environment:
       - NODE_ENV=production
@@ -17,7 +18,6 @@ services:
       - NEXT_PUBLIC_PYTHON_API_URL=http://chordmini-backend:8080
       - SONGFORMER_API_URL=http://chordmini-backend:8080
       - SHEETSAGE_API_URL=http://chordmini-backend:8080
-      - NEXT_PUBLIC_BASE_URL=${CHORDMINI_BASE_URL:-http://localhost:3100}
       - SONGFORMER_CALLBACK_BASE_URL=http://localhost:3000
     volumes:
       # Newer yt-dlp than the one baked into the image (YouTube rejects old versions).

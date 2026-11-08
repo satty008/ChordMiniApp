@@ -9,6 +9,7 @@ BE=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}
 VID=${1:-PQZ6h49kBIc}; URL="https://www.youtube.com/watch?v=$VID"
 if [ -z "$SKIP_CM" ]; then
 echo "== ChordMini"
+t "browser config base URL is the public https URL (not localhost)" "curl -sf $FE/api/config | python3 -c 'import sys,json;u=json.load(sys.stdin)[\"NEXT_PUBLIC_BASE_URL\"];sys.exit(0 if u.startswith(\"https://\") and \"localhost\" not in u else 1)'"
 t "frontend /api/health healthy"      "curl -sf $FE/api/health | grep -q healthy"
 t "backend /health via frontend net"  "docker exec chordmini-frontend curl -sf http://chordmini-backend:8080/health | grep -q healthy"
 t "/api/config has firebase project"  "curl -sf $FE/api/config | grep -q chordmini-de"

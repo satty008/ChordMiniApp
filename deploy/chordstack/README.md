@@ -5,10 +5,11 @@ ChordMini + LiveChord on one Docker host (no dependency on any dev machine).
 ```bash
 git clone https://github.com/satty008/ChordMiniApp.git && cd ChordMiniApp/deploy/chordstack
 cp ../../.env.docker.example .env.docker      # fill in the Firebase web config, keep NEXT_PUBLIC_AUDIO_STRATEGY=ytdlp
+# IMPORTANT: NEXT_PUBLIC_BASE_URL in .env.docker must be the public https URL users open
+# (e.g. https://chordmini.example.org). The browser is told to use it, so localhost breaks analysis.
 chmod 600 .env.docker
-echo 'CHORDMINI_BASE_URL=https://chordmini.example.org' > .env
 ./fetch-weights.sh                            # BTC weights for LiveChord (sha256-verified)
-docker compose up -d --build
+docker compose up -d --build                  # no --env-file flag needed
 ./smoke.sh                                    # end-to-end checks, run on the same host
 ```
 
