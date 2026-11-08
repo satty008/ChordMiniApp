@@ -10,6 +10,7 @@
  */
 
 import { getPythonApiUrl as getServerPythonApiUrl } from '@/config/serverBackend';
+import { getCachedConfig } from '@/config/publicConfig';
 
 /**
  * Get the Python backend URL from environment variables (sync, for server-side)
@@ -48,7 +49,23 @@ export async function getBackendUrlAsync(): Promise<string> {
  * 
  * @returns True if using localhost backend
  */
+/**
+ * Self-hosted deployments without a Firebase Storage bucket set
+ * NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE=1 (served to the browser via /api/config).
+ * They must use direct multipart uploads, exactly like localhost development.
+ */
+function isDirectUploadDeployment(): boolean {
+  const flag = typeof window !== 'undefined'
+    ? getCachedConfig()?.NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE
+    : process.env.NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE;
+  return flag === '1';
+}
+
 export function isLocalBackend(): boolean {
+  if (isDirectUploadDeployment()) {
+    return true;
+  }
+
   const backendUrl = typeof window === 'undefined'
     ? getBackendUrl()
     : window.location.origin;
