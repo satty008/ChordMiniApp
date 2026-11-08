@@ -5,7 +5,7 @@ import { requestSongSegmentation } from '@/services/api/chatbotService';
 import { SegmentationResult, SongContext } from '@/types/chatbotTypes';
 import { useUIStore } from '@/stores/uiStore';
 
-const SEGMENTATION_ACCESS_REQUEST_EMAIL = process.env.NEXT_PUBLIC_SEGMENTATION_ACCESS_REQUEST_EMAIL || 'phantrongnghia510@gmail.com';
+const SEGMENTATION_ACCESS_REQUEST_EMAIL = process.env.NEXT_PUBLIC_SEGMENTATION_ACCESS_REQUEST_EMAIL || 'srnarayanan1989@gmail.com';
 
 function shouldShowSegmentationAccessToast(errorMessage: string): boolean {
   const normalizedMessage = errorMessage.toLowerCase();

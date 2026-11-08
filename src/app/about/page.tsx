@@ -249,7 +249,7 @@ const AboutPage: React.FC = () => {
               For research inquiries, collaboration opportunities, or technical questions, please contact:
             </p>
             <div className="space-y-2">
-              <p><strong>Email:</strong> <a href="mailto:phantrongnghia510@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">phantrongnghia510@gmail.com</a></p>
+              <p><strong>Email:</strong> <a href="mailto:srnarayanan1989@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">srnarayanan1989@gmail.com</a></p>
               <p><strong>GitHub:</strong> <a href="https://github.com/ptnghia-j/ChordMiniApp" className="text-blue-600 dark:text-blue-400 hover:underline">ChordMiniApp Repository</a></p>
             </div>
           </div>
