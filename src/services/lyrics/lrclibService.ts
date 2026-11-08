@@ -38,6 +38,8 @@ export interface LRCLibCandidate {
   lyricsfile?: string;
   lyrics?: LyricsData;
   score: number;
+  /** Title/artist similarity part of `score` (0 = no match). */
+  textScore?: number;
   confidence: LRCLibConfidence;
   durationDelta?: number;
   matchReason: string;
@@ -362,10 +364,29 @@ export function normalizeLRCLibCandidate(
     lyricsfile,
     lyrics,
     score,
+    textScore,
     confidence,
     durationDelta: durationMatch.delta,
     matchReason: `${lyricMode} sync, ${durationMatch.delta === undefined ? 'duration not compared' : `${durationMatch.delta.toFixed(1)}s duration delta`}`,
   };
+}
+
+/**
+ * Minimum title/artist similarity for applying synced lyrics automatically when the duration does not match
+ * (typically a cover of a known song). 55 is "the song title appears in the video title" plus a partial artist
+ * match; a bare title hit alone scores 35 and is left to the manual picker.
+ */
+export const AUTO_APPLY_MIN_TEXT_SCORE = 55;
+
+export function isTimedCandidate(candidate: LRCLibCandidate): boolean {
+  return (candidate.lyric_mode === 'word' || candidate.lyric_mode === 'line') && Boolean(candidate.lyrics?.lines.length);
+}
+
+/** Synced lyrics whose title/artist clearly match, even if the recording's duration differs. */
+export function isAutoApplicableCandidate(candidate: LRCLibCandidate): boolean {
+  return isTimedCandidate(candidate)
+    && !candidate.instrumental
+    && (candidate.textScore ?? 0) >= AUTO_APPLY_MIN_TEXT_SCORE;
 }
 
 export function rankLRCLibCandidates(

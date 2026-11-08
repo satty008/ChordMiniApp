@@ -65,7 +65,19 @@ import { useAnalyzePageLifecycleReset } from './useAnalyzePageLifecycleReset';
 import { shouldShowSnowEffect } from '@/utils/seasonalEffects';
 import { searchLyricsWithFallback, type LyricsServiceResponse } from '@/services/lyrics/lyricsService';
 import { resolveLyricsForChatbotContext } from '@/utils/chatbotLyrics';
-import type { LRCLibCandidate } from '@/services/lyrics/lrclibService';
+import { isAutoApplicableCandidate, isTimedCandidate, type LRCLibCandidate } from '@/services/lyrics/lrclibService';
+import {
+  MAX_USER_LYRICS_CHARS,
+  clearUserLyrics,
+  loadLyricsOffset,
+  loadUserLyrics,
+  parseUserLyrics,
+  saveLyricsOffset,
+  saveUserLyrics,
+  type AppliedLyricsInfo,
+  type UserLyricsApplyResult,
+} from '@/services/lyrics/userLyrics';
+import { clampLyricsOffset, shiftLyricsData } from '@/utils/lyricsOffset';
 import type { BeatGridTimedLyrics } from '@/components/chord-analysis/GridLyricsRow';
 
 interface UseAnalyzePageViewModelParams {
@@ -624,7 +636,11 @@ export function useAnalyzePageViewModel({
   const [appliedGridLyrics, setAppliedGridLyrics] = useState<{
     timedLyrics?: BeatGridTimedLyrics;
     plainLyrics?: string;
+    info?: AppliedLyricsInfo;
   } | null>(null);
+  // Timing correction (seconds, + = later) for the applied synced lyrics; remembered per video and source.
+  const [lyricsOffsetSeconds, setLyricsOffsetSeconds] = useState(0);
+  const restoredUserLyricsForRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!lyricsSearchQuery && (videoTitle || titleFromSearch)) {
@@ -676,7 +692,12 @@ export function useAnalyzePageViewModel({
 
   useYouTubeSetup(videoId, setAudioProcessingState);
 
-  const visibleGridLyrics = isGridLyricsVisible ? appliedGridLyrics?.timedLyrics ?? null : null;
+  const appliedTimedLyrics = appliedGridLyrics?.timedLyrics ?? null;
+  const shiftedTimedLyrics = useMemo(() => {
+    if (!appliedTimedLyrics || lyricsOffsetSeconds === 0) return appliedTimedLyrics;
+    return { ...appliedTimedLyrics, lyrics: shiftLyricsData(appliedTimedLyrics.lyrics, lyricsOffsetSeconds) };
+  }, [appliedTimedLyrics, lyricsOffsetSeconds]);
+  const visibleGridLyrics = isGridLyricsVisible ? shiftedTimedLyrics : null;
   const visiblePlainLyrics = isGridLyricsVisible ? appliedGridLyrics?.plainLyrics ?? null : null;
 
   const chatbotLyrics = useMemo(() => resolveLyricsForChatbotContext(
@@ -763,25 +784,98 @@ export function useAnalyzePageViewModel({
     setIsChatbotOpen(!isChatbotOpen);
   }, [isChatbotOpen]);
 
-  const applyLRCLibCandidate = useCallback((candidate: LRCLibCandidate) => {
-    if ((candidate.lyric_mode === 'word' || candidate.lyric_mode === 'line') && candidate.lyrics) {
+  const applyLRCLibCandidate = useCallback((candidate: LRCLibCandidate, options?: { keepSearchOpen?: boolean }) => {
+    const timed = isTimedCandidate(candidate);
+    if (!timed && !candidate.plain_lyrics) return;
+
+    const info: AppliedLyricsInfo = {
+      source: 'lrclib',
+      sourceKey: `lrclib-${candidate.id}`,
+      label: [candidate.trackName, candidate.artistName].filter(Boolean).join(' \u2014 ') || 'LRCLIB lyrics',
+      timed,
+      // Same tolerance LRCLIB scoring treats as "same recording" (5 s): beyond that the timing is borrowed.
+      approximate: timed && candidate.durationDelta !== undefined && candidate.durationDelta > 5,
+      candidateDuration: candidate.duration || undefined,
+      videoDuration: effectiveAnalysisDuration || undefined,
+    };
+
+    if (timed && candidate.lyrics) {
       setAppliedGridLyrics({
-        timedLyrics: {
-          mode: candidate.lyric_mode,
-          lyrics: candidate.lyrics,
-        },
+        timedLyrics: { mode: candidate.lyric_mode === 'word' ? 'word' : 'line', lyrics: candidate.lyrics },
+        info,
       });
-      setIsGridLyricsVisible(true);
-      setIsLyricsSearchOpen(false);
-      return;
+      setLyricsOffsetSeconds(loadLyricsOffset(videoId, info.sourceKey));
+    } else {
+      setAppliedGridLyrics({ plainLyrics: candidate.plain_lyrics, info });
+      setLyricsOffsetSeconds(0);
     }
 
-    if (candidate.plain_lyrics) {
-      setAppliedGridLyrics({ plainLyrics: candidate.plain_lyrics });
-      setIsGridLyricsVisible(true);
-      setIsLyricsSearchOpen(false);
+    setIsGridLyricsVisible(true);
+    if (!options?.keepSearchOpen) setIsLyricsSearchOpen(false);
+  }, [effectiveAnalysisDuration, videoId]);
+
+  const applyUserLyrics = useCallback((
+    rawText: string,
+    filename?: string,
+    options?: { persist?: boolean; keepSearchOpen?: boolean },
+  ): UserLyricsApplyResult => {
+    if (rawText.length > MAX_USER_LYRICS_CHARS) {
+      return { ok: false, error: 'That is too large to be lyrics (limit about 200 KB).' };
     }
+
+    const parsed = parseUserLyrics(rawText, effectiveAnalysisDuration || undefined);
+    if (parsed.kind === 'empty') {
+      return { ok: false, error: 'No lyrics found in that text.' };
+    }
+
+    const info: AppliedLyricsInfo = {
+      source: 'user',
+      sourceKey: 'user',
+      label: filename || 'Pasted lyrics',
+      timed: parsed.kind === 'timed',
+    };
+
+    if (parsed.kind === 'timed') {
+      setAppliedGridLyrics({ timedLyrics: { mode: 'line', lyrics: parsed.lyrics }, info });
+      setLyricsOffsetSeconds(loadLyricsOffset(videoId, info.sourceKey));
+    } else {
+      setAppliedGridLyrics({ plainLyrics: parsed.text, info });
+      setLyricsOffsetSeconds(0);
+    }
+
+    if (options?.persist !== false) saveUserLyrics(videoId, { text: rawText, filename });
+    setIsGridLyricsVisible(true);
+    if (!options?.keepSearchOpen) setIsLyricsSearchOpen(false);
+    return { ok: true, kind: parsed.kind };
+  }, [effectiveAnalysisDuration, videoId]);
+
+  const changeLyricsOffset = useCallback((deltaSeconds: number) => {
+    setLyricsOffsetSeconds((previous) => clampLyricsOffset(previous + deltaSeconds));
   }, []);
+
+  const resetLyricsOffset = useCallback(() => setLyricsOffsetSeconds(0), []);
+
+  const clearAppliedLyrics = useCallback(() => {
+    if (appliedGridLyrics?.info?.source === 'user') clearUserLyrics(videoId);
+    setAppliedGridLyrics(null);
+    setIsGridLyricsVisible(false);
+    setLyricsOffsetSeconds(0);
+  }, [appliedGridLyrics, videoId]);
+
+  // Remember the timing correction per video and lyrics source.
+  useEffect(() => {
+    const sourceKey = appliedGridLyrics?.info?.sourceKey;
+    if (!sourceKey || !appliedGridLyrics?.timedLyrics) return;
+    saveLyricsOffset(videoId, sourceKey, lyricsOffsetSeconds);
+  }, [appliedGridLyrics, lyricsOffsetSeconds, videoId]);
+
+  // Bring back lyrics the user supplied earlier for this video (once per video).
+  useEffect(() => {
+    if (restoredUserLyricsForRef.current === videoId) return;
+    restoredUserLyricsForRef.current = videoId;
+    const saved = loadUserLyrics(videoId);
+    if (saved) applyUserLyrics(saved.text, saved.filename, { persist: false, keepSearchOpen: true });
+  }, [videoId, applyUserLyrics]);
 
   const runLRCLibLyricsSearch = useCallback(async (queryOverride?: string) => {
     const query = (queryOverride ?? lyricsSearchQuery).trim() || (videoTitle || titleFromSearch || '').trim();
@@ -809,25 +903,22 @@ export function useAnalyzePageViewModel({
         return;
       }
 
-      if (
-        result.confidence === 'high'
-        && (result.lyric_mode === 'word' || result.lyric_mode === 'line')
-        && result.lyrics
-      ) {
-        setAppliedGridLyrics({
-          timedLyrics: {
-            mode: result.lyric_mode,
-            lyrics: result.lyrics,
-          },
-        });
-        setIsGridLyricsVisible(true);
+      // Never replace lyrics the user supplied themselves.
+      const best = result.candidates?.[0];
+      if (best && appliedGridLyrics?.info?.source !== 'user') {
+        const highConfidenceTimed = result.confidence === 'high' && isTimedCandidate(best);
+        // A cover of a known song: title matches strongly but the duration differs. Apply it, flagged as
+        // timed to a different recording, and let the timing buttons line it up.
+        if (highConfidenceTimed || isAutoApplicableCandidate(best)) {
+          applyLRCLibCandidate(best, { keepSearchOpen: true });
+        }
       }
     } catch (error) {
       setGridLyricsError(error instanceof Error ? error.message : 'Failed to search LRCLIB.');
     } finally {
       setIsGridLyricsSearching(false);
     }
-  }, [duration, durationFromSearch, lyricsSearchQuery, titleFromSearch, videoTitle]);
+  }, [appliedGridLyrics, applyLRCLibCandidate, duration, durationFromSearch, lyricsSearchQuery, titleFromSearch, videoTitle]);
 
   const toggleLyricsPanel = useCallback(() => {
     if (isGridLyricsVisible) {
@@ -1556,6 +1647,12 @@ export function useAnalyzePageViewModel({
       onClose: () => setIsLyricsSearchOpen(false),
       onSearch: () => void runLRCLibLyricsSearch(),
       onApplyCandidate: applyLRCLibCandidate,
+      applied: appliedGridLyrics?.info ?? null,
+      timingOffsetSeconds: lyricsOffsetSeconds,
+      onTimingOffsetChange: changeLyricsOffset,
+      onTimingOffsetReset: resetLyricsOffset,
+      onApplyUserLyrics: (text: string, filename?: string) => applyUserLyrics(text, filename),
+      onClearLyrics: clearAppliedLyrics,
     },
     segmentation: {
       isVisible: showSegmentation && !!segmentationData,

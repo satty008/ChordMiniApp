@@ -20,6 +20,7 @@ import { useShowRomanNumerals, useToggleRomanNumerals, useSimplifyChords, useTog
 import { metronomeService } from '@/services/chord-playback/metronomeService';
 import type { LyricsServiceResponse } from '@/services/lyrics/lyricsService';
 import type { LRCLibCandidate } from '@/services/lyrics/lrclibService';
+import type { AppliedLyricsInfo, UserLyricsApplyResult } from '@/services/lyrics/userLyrics';
 import { FloatingDock } from '@/components/ui/FloatingDock';
 
 interface UtilityBarProps {
@@ -77,6 +78,12 @@ interface UtilityBarProps {
     onClose: () => void;
     onSearch: () => void;
     onApplyCandidate: (candidate: LRCLibCandidate) => void;
+    applied?: AppliedLyricsInfo | null;
+    timingOffsetSeconds?: number;
+    onTimingOffsetChange?: (deltaSeconds: number) => void;
+    onTimingOffsetReset?: () => void;
+    onApplyUserLyrics?: (text: string, filename?: string) => UserLyricsApplyResult;
+    onClearLyrics?: () => void;
   };
   segmentation: {
     isVisible: boolean;
@@ -436,6 +443,12 @@ const UtilityBar: React.FC<UtilityBarProps> = ({
                       onClose={lyricsSearchPopover.onClose}
                       onSearch={lyricsSearchPopover.onSearch}
                       onApplyCandidate={lyricsSearchPopover.onApplyCandidate}
+                      applied={lyricsSearchPopover.applied}
+                      timingOffsetSeconds={lyricsSearchPopover.timingOffsetSeconds}
+                      onTimingOffsetChange={lyricsSearchPopover.onTimingOffsetChange}
+                      onTimingOffsetReset={lyricsSearchPopover.onTimingOffsetReset}
+                      onApplyUserLyrics={lyricsSearchPopover.onApplyUserLyrics}
+                      onClearLyrics={lyricsSearchPopover.onClearLyrics}
                     />
                   )}
                 </UtilityPopoverPanel>

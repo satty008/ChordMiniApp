@@ -10,6 +10,7 @@ import type { UseChordPlaybackReturn } from '@/hooks/chord-playback/useChordPlay
 import type { TabKey } from '@/components/homepage/ResultsTabs';
 import type { LyricsServiceResponse } from '@/services/lyrics/lyricsService';
 import type { LRCLibCandidate } from '@/services/lyrics/lrclibService';
+import type { AppliedLyricsInfo, UserLyricsApplyResult } from '@/services/lyrics/userLyrics';
 import type { BeatGridTimedLyrics } from '@/components/chord-analysis/GridLyricsRow';
 
 export interface AnalyzePageChromeProps {
@@ -248,6 +249,12 @@ export interface AnalyzePageViewModel {
       onClose: () => void;
       onSearch: () => void;
       onApplyCandidate: (candidate: LRCLibCandidate) => void;
+      applied: AppliedLyricsInfo | null;
+      timingOffsetSeconds: number;
+      onTimingOffsetChange: (deltaSeconds: number) => void;
+      onTimingOffsetReset: () => void;
+      onApplyUserLyrics: (text: string, filename?: string) => UserLyricsApplyResult;
+      onClearLyrics: () => void;
     };
     segmentation: {
       isVisible: boolean;
