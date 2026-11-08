@@ -48,7 +48,7 @@ assert len(res["chords"])>5
 EOF
 t "livechord upload + BTC chords (async job)" "python3 /tmp/lc_job.py"
 echo "== Isolation / ops"
-t "no refs to the dev PC in compose"  "! grep -qE '192\.168\.178|satty008-pc|host.docker.internal' ~/repos/chordstack/docker-compose.yml"
+t "no refs to the dev PC in compose"  "! grep -qE '192\.168\.178|satty008-pc|host.docker.internal' docker-compose.yml"
 t "containers restart=unless-stopped" "[ \$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' chordmini-frontend chordmini-backend livechord | sort -u | tr -d '\n') = unless-stopped ]"
-t "no bind mounts outside stack dir"  "! docker inspect -f '{{range .Mounts}}{{.Source}}{{\"\\n\"}}{{end}}' chordmini-frontend chordmini-backend livechord | grep -vE '^$|chordstack|/var/lib/docker/volumes'"
+t "no bind mounts outside the cloned repo"  "! docker inspect -f '{{range .Mounts}}{{.Source}}{{\"\\n\"}}{{end}}' chordmini-frontend chordmini-backend livechord | grep -vE '^$|/ChordMiniApp/|/var/lib/docker/volumes' | grep -q ."
 echo "== $pass passed, $fail failed"
