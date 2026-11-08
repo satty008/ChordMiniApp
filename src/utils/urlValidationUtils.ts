@@ -32,17 +32,37 @@ function isHostnameAllowed(hostname: string, allowedDomains: readonly string[]):
   return allowedDomains.some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
 }
 
+function getOwnPublicHostname(): string | null {
+  const configured = process.env.NEXT_PUBLIC_BASE_URL?.trim();
+  if (!configured) return null;
+  try {
+    return new URL(configured).hostname;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Self-hosted yt-dlp mode: the app's own local audio endpoint may be fetched
- * server-side even outside NODE_ENV=development. Deliberately narrow: exact
- * host, path and strategy only.
+ * server-side even outside NODE_ENV=development, via localhost or the app's own
+ * public hostname (NEXT_PUBLIC_BASE_URL). Deliberately narrow: exact host,
+ * path and strategy only. safeFetchAudioSource rewrites it to the internal address.
  */
 export function isSelfHostedLocalAudioUrl(url: URL): boolean {
-  return (
-    process.env.NEXT_PUBLIC_AUDIO_STRATEGY === 'ytdlp' &&
-    ['localhost', '127.0.0.1'].includes(url.hostname) &&
-    url.pathname === '/api/serve-local-audio'
-  );
+  if (process.env.NEXT_PUBLIC_AUDIO_STRATEGY !== 'ytdlp') return false;
+  if (url.pathname !== '/api/serve-local-audio') return false;
+  const ownHost = getOwnPublicHostname();
+  return ['localhost', '127.0.0.1'].includes(url.hostname) || (ownHost !== null && url.hostname === ownHost);
+}
+
+/** Map the app's own public audio URL to the address reachable from inside the container. */
+export function toInternalSelfHostedAudioUrl(url: URL): URL {
+  if (!isSelfHostedLocalAudioUrl(url)) return url;
+  const internal = new URL(url.toString());
+  internal.protocol = 'http:';
+  internal.hostname = 'localhost';
+  internal.port = String(process.env.PORT || 3000);
+  return internal;
 }
 
 function isDevelopmentLocalhost(url: URL): boolean {

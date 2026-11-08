@@ -19,6 +19,15 @@ FN=$(python3 -c "import json;d=json.load(open('/tmp/dl.json'));print(d.get('file
 ENC=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$FN")
 rm -f /tmp/a.mp3
 t "serve-local-audio streams file" "curl -g -sf -m60 -o /tmp/a.mp3 \"$FE/api/serve-local-audio?filename=$ENC\" && [ \$(stat -c%s /tmp/a.mp3) -gt 100000 ]"
+# --- the path the browser actually uses (server calls itself via NEXT_PUBLIC_BASE_URL) ---
+MIX="https://www.youtube.com/watch?v=$VID&list=RD$VID&start_radio=1"
+t "ytdlp extract with radio-mix URL (--no-playlist)" "curl -sf -m60 -X POST $FE/api/ytdlp/extract -H 'content-type: application/json' -d '{\"url\":\"$MIX\"}' | grep -q '\"success\":true'"
+t "UI path: /api/extract-audio returns audioUrl" "curl -sf -m300 -X POST $FE/api/extract-audio -H 'content-type: application/json' -d '{\"videoId\":\"$VID\",\"forceRedownload\":true,\"useStreamUrl\":false}' | tee /tmp/ea.json | grep -q '\"success\":true'"
+AU=$(python3 -c "import json;print(json.load(open('/tmp/ea.json')).get('audioUrl',''))" 2>/dev/null)
+AUE=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$AU")
+t "UI path: audioUrl is on the public hostname" "echo $AU | grep -q '^https\?://'"
+t "UI path: /api/audio-duration accepts audioUrl" "curl -sf -m60 -X POST $FE/api/audio-duration -H 'content-type: application/json' -d '{\"audioUrl\":\"$AU\",\"videoId\":\"$VID\"}' | grep -q duration"
+t "UI path: /api/proxy-audio streams audioUrl" "curl -g -sf -m120 -o /tmp/p.mp3 '$FE/api/proxy-audio?url=$AUE&videoId=$VID' && [ \$(stat -c%s /tmp/p.mp3) -gt 100000 ]"
 t "backend chords: chord-cnn-lstm"    "curl -sf -m400 -X POST http://$BE:8080/api/recognize-chords -F file=@/tmp/a.mp3 -F chord_model=chord-cnn-lstm | grep -q '\"chords\"'"
 t "backend chords: btc-sl"            "curl -sf -m400 -X POST http://$BE:8080/api/recognize-chords -F file=@/tmp/a.mp3 -F detector=btc-sl | grep -q '\"chords\"'"
 t "backend beats: beat-transformer"   "curl -sf -m400 -X POST http://$BE:8080/api/detect-beats -F file=@/tmp/a.mp3 -F model=beat-transformer | grep -q 'beats'"

@@ -39,7 +39,11 @@ class YtDlpService {
   private readonly baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Server-to-self calls use the in-container address: the public hostname
+    // (NEXT_PUBLIC_BASE_URL) is not reachable from inside the container.
+    this.baseUrl = typeof window === 'undefined'
+      ? (process.env.INTERNAL_BASE_URL || `http://localhost:${process.env.PORT || 3000}`)
+      : (process.env.NEXT_PUBLIC_BASE_URL || window.location.origin);
   }
 
   /**

@@ -4,6 +4,7 @@ import { BlockList, isIP } from 'node:net';
 import {
   isSelfHostedLocalAudioUrl,
   parseAndValidateAudioSourceUrl,
+  toInternalSelfHostedAudioUrl,
   type SafeAudioSourceValidationOptions,
 } from './urlValidationUtils';
 
@@ -126,7 +127,7 @@ export async function safeFetchAudioSource(
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount++) {
     const parsedUrl = await assertSafeServerAudioSourceUrl(currentUrl, validationOptions);
 
-    const response = await fetch(parsedUrl.toString(), {
+    const response = await fetch(toInternalSelfHostedAudioUrl(parsedUrl).toString(), {
       ...init,
       method,
       redirect: 'manual',
