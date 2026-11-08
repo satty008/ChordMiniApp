@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-const DEFAULT_SEGMENTATION_ACCESS_REQUEST_EMAIL = 'phantrongnghia510@gmail.com';
+const DEFAULT_SEGMENTATION_ACCESS_REQUEST_EMAIL = 'srnarayanan1989@gmail.com';
 
 export function getSegmentationAccessRequestEmail(): string {
   return process.env.NEXT_PUBLIC_SEGMENTATION_ACCESS_REQUEST_EMAIL || DEFAULT_SEGMENTATION_ACCESS_REQUEST_EMAIL;

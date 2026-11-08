@@ -134,8 +134,8 @@ service cloud.firestore {
       // Allow deletion by admin users only
       allow delete: if request.auth != null &&
                        request.auth.token.email in [
-                         'ptnghia@csu.fullerton.edu',
-                         'phantrongnghia510@gmail.com'
+                         'srnarayanan1989@gmail.com',
+                         'bhavi.ram1608@gmail.com'
                        ];
     }
 
@@ -151,8 +151,8 @@ service cloud.firestore {
       // Allow deletion by admin users only
       allow delete: if request.auth != null &&
                        request.auth.token.email in [
-                         'ptnghia@csu.fullerton.edu',
-                         'phantrongnghia510@gmail.com'
+                         'srnarayanan1989@gmail.com',
+                         'bhavi.ram1608@gmail.com'
                        ];
     }
 
@@ -168,8 +168,8 @@ service cloud.firestore {
       // Allow deletion by admin users only
       allow delete: if request.auth != null &&
                        request.auth.token.email in [
-                         'ptnghia@csu.fullerton.edu',
-                         'phantrongnghia510@gmail.com'
+                         'srnarayanan1989@gmail.com',
+                         'bhavi.ram1608@gmail.com'
                        ];
     }
 
@@ -188,8 +188,8 @@ service cloud.firestore {
       // Allow deletion by admin users only
       allow delete: if request.auth != null &&
                        request.auth.token.email in [
-                         'ptnghia@csu.fullerton.edu',
-                         'phantrongnghia510@gmail.com'
+                         'srnarayanan1989@gmail.com',
+                         'bhavi.ram1608@gmail.com'
                        ];
     }
 
@@ -200,8 +200,8 @@ service cloud.firestore {
       allow update: if true;
       allow delete: if request.auth != null &&
                        request.auth.token.email in [
-                         'ptnghia@csu.fullerton.edu',
-                         'phantrongnghia510@gmail.com'
+                         'srnarayanan1989@gmail.com',
+                         'bhavi.ram1608@gmail.com'
                        ];
     }
 
@@ -212,8 +212,8 @@ service cloud.firestore {
       allow update: if true;
       allow delete: if request.auth != null &&
                        request.auth.token.email in [
-                         'ptnghia@csu.fullerton.edu',
-                         'phantrongnghia510@gmail.com'
+                         'srnarayanan1989@gmail.com',
+                         'bhavi.ram1608@gmail.com'
                        ];
     }
 
@@ -229,9 +229,8 @@ service cloud.firestore {
       // Replace these email addresses with actual maintainer emails
       allow read, write: if request.auth != null &&
                             request.auth.token.email in [
-                              'ptnghia@csu.fullerton.edu',
-                              'phantrongnghia510@gmail.com',
-                              'admin@chordmini.com'
+                              'srnarayanan1989@gmail.com',
+                              'bhavi.ram1608@gmail.com'
                               // Add more maintainer emails here
                             ];
     }
@@ -241,9 +240,8 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth != null &&
                       request.auth.token.email in [
-                        'ptnghia@csu.fullerton.edu',
-                        'phantrongnghia510@gmail.com',
-                        'admin@chordmini.com'
+                        'srnarayanan1989@gmail.com',
+                        'bhavi.ram1608@gmail.com'
                       ];
     }
 
@@ -281,8 +279,8 @@ service cloud.firestore {
       // Allow deletion by admin users only
       allow delete: if request.auth != null &&
                        request.auth.token.email in [
-                         'ptnghia@csu.fullerton.edu',
-                         'phantrongnghia510@gmail.com'
+                         'srnarayanan1989@gmail.com',
+                         'bhavi.ram1608@gmail.com'
                        ];
     }
 
