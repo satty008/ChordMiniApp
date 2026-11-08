@@ -118,6 +118,7 @@ async function downloadAudio(
         '--audio-quality', '0', // Best quality
         '--output', outputTemplate,
         '--no-warnings',
+        '--no-playlist', // download only the video, not the radio mix / playlist in the link
         '--restrict-filenames', // Use safe filenames
         '--print', 'after_move:filepath', // Print the final file path
         url

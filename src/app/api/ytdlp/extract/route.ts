@@ -86,6 +86,8 @@ async function extractVideoInfo(url: string): Promise<VideoInfo> {
       '--dump-json',
       '--no-download',
       '--no-warnings',
+      // Radio-mix links (list=RD...&start_radio=1) otherwise make yt-dlp resolve the whole mix and time out
+      '--no-playlist',
       url
     ];
 
