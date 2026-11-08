@@ -398,6 +398,9 @@ const UtilityBar: React.FC<UtilityBarProps> = ({
               placement="top"
               offset={10}
               isOpen={lyricsSearchPopover?.isOpen ?? false}
+              // Follow mode scrolls the page during playback (and when the grid is rebuilt); timing is adjusted
+              // while listening, so the panel must survive scrolling. The utility bar is fixed, so it never drifts.
+              shouldCloseOnScroll={false}
               onOpenChange={(open) => {
                 if (!open) {
                   lyricsSearchPopover?.onClose();

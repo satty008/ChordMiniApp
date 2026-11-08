@@ -26,6 +26,18 @@ Browser check (optional, run from any machine, alone, because the backend has 2 
 
 Versions here track the `deploy/chordstack` stack of this fork, independent of upstream ChordMini's own tags.
 
+### Unreleased
+
+#### Added
+- Lyrics: timing buttons (-1, -0.5, +0.5, +1 s) to line up lyrics borrowed from another recording; the offset is remembered per video.
+- Lyrics: use your own lyrics - paste text or upload a `.lrc`/`.txt` file (timed lines become synced lyrics); saved in the browser per video.
+- Lyrics: synced LRCLIB lyrics whose title clearly matches the video are applied automatically even when the duration differs (covers).
+- `e2e/lyrics-e2e.mjs`: browser test of the lyrics features.
+
+#### Fixed
+- LRCLIB found nothing for titles like `Song | Singer | Ukulele Cover | Film | Artist`: the pieces of the title are now searched separately, with cover/format words removed, and a song named in the title outranks other songs by the same singer.
+- Among same-song candidates whose duration does not match, the closer recording now ranks higher.
+
 ### 0.1.0 - 2026-11-08
 
 First working self-hosted release: ChordMini + LiveChord + a front door, on one Docker host

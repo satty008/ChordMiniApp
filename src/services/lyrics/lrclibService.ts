@@ -299,7 +299,8 @@ function durationScore(candidateDuration: number, expectedDuration?: number): { 
   if (delta <= 2) return { score: 80, delta, confidence: 'high' };
   if (delta <= 5) return { score: 55, delta, confidence: 'high' };
   if (delta <= looseTolerance) return { score: 30, delta, confidence: 'medium' };
-  return { score: -60, delta, confidence: 'low' };
+  // Beyond the tolerance: still prefer the closer recording (a 172 s original over a 91 s clip for a 185 s video).
+  return { score: -60 - Math.min(delta, 100) * 0.2, delta, confidence: 'low' };
 }
 
 function textMatchScore(candidate: RawLRCLibSearchItem, parsed: ReturnType<typeof parseVideoTitle>, cleanedQuery: string): number {
@@ -316,7 +317,12 @@ function textMatchScore(candidate: RawLRCLibSearchItem, parsed: ReturnType<typeo
   if (parsedArtist && candidateArtist === parsedArtist) score += 70;
   else if (parsedArtist && (candidateArtist.includes(parsedArtist) || parsedArtist.includes(candidateArtist))) score += 35;
 
-  if (!parsedTitle && query && candidateTitle && query.includes(candidateTitle)) score += 35;
+  if (!parsedTitle && query && candidateTitle && ` ${query} `.includes(` ${candidateTitle} `)) {
+    // Noisy video titles ("Song | Singer | Cover | Film") do not parse into artist/title, so the song title is found
+    // inside the whole string. A longer title matching as whole words is strong evidence; one short word is not.
+    const wordCount = candidateTitle.split(' ').length;
+    score += wordCount >= 3 ? 120 : wordCount === 2 ? 90 : candidateTitle.length >= 6 ? 45 : 35;
+  }
   if (!parsedArtist && query && candidateArtist && query.includes(candidateArtist)) score += 20;
 
   return score;
@@ -371,10 +377,43 @@ export function normalizeLRCLibCandidate(
   };
 }
 
+const SEGMENT_NOISE = /\b(?:full\s+(?:song|video)|video\s+song|lyrical|lyrics?(?:\s+video)?|official(?:\s+(?:music\s+)?(?:video|audio))?|audio|cover|unplugged|acoustic|ukulele|guitar|piano|karaoke|instrumental|reprise|version|remix|tutorial|chords?|hd|4k|live)\b/gi;
+
+/**
+ * Search queries made from the pieces of a noisy video title such as
+ * "Song | Singer | Ukulele Cover | Film | Original Artist": quoted phrases first, then each
+ * `|` / ` - ` separated segment, with cover/lyrics/format words removed.
+ * LRCLIB matches nothing for the whole string but finds the song from its title alone.
+ */
+export function buildSegmentQueries(query: string, max = 4): string[] {
+  if (!query) return [];
+
+  const clean = (value: string) => normalizeWhitespace(
+    value
+      .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+      .replace(/["\u201C\u201D\u2018\u2019]/g, ' ')
+      .replace(SEGMENT_NOISE, ' ')
+  );
+
+  const quoted = [...query.matchAll(/["\u201C\u201D]([^"\u201C\u201D]{2,80})["\u201C\u201D]/g)].map((match) => clean(match[1]));
+  const segments = query.split(/\s*[|\uFF5C\u2022\u00B7]\s*|\s+[-\u2013\u2014~]\s+/).map(clean);
+
+  const seen = new Set<string>();
+  const queries: string[] = [];
+  for (const candidate of [...quoted, ...segments]) {
+    const key = candidate.toLowerCase();
+    if (candidate.length < 3 || seen.has(key)) continue;
+    seen.add(key);
+    queries.push(candidate);
+    if (queries.length >= max) break;
+  }
+  return queries;
+}
+
 /**
  * Minimum title/artist similarity for applying synced lyrics automatically when the duration does not match
- * (typically a cover of a known song). 55 is "the song title appears in the video title" plus a partial artist
- * match; a bare title hit alone scores 35 and is left to the manual picker.
+ * (typically a cover of a known song). A title of two or more words found in the video title clears it on its own;
+ * a single-word title also needs the artist to match, so common one-word titles are left to the manual picker.
  */
 export const AUTO_APPLY_MIN_TEXT_SCORE = 55;
 
@@ -449,6 +488,30 @@ export async function searchLRCLibLyrics(params: {
   const rawResults = (await Promise.all(searches.map(fetchSearchResults))).flat();
   let candidates = rankLRCLibCandidates(rawResults, parsedParams, cleanedQuery || originalSearchQuery, params.duration);
   let bestMatch = candidates[0];
+
+  // Covers and film-song uploads have titles like "Song | Singer | Cover | Film": the whole string finds
+  // nothing, so retry with the pieces when the first pass has no strong title match.
+  if (!candidates.some((candidate) => (candidate.textScore ?? 0) >= AUTO_APPLY_MIN_TEXT_SCORE)) {
+    const fullQuery = normalizeForCompare(cleanedQuery || originalSearchQuery);
+    const segmentQueries = buildSegmentQueries(cleanedQuery || originalSearchQuery)
+      .filter((segment) => normalizeForCompare(segment) !== fullQuery);
+
+    if (segmentQueries.length > 0) {
+      const extraResults = (await Promise.all(
+        segmentQueries.map((segment) => fetchSearchResults(new URLSearchParams({ q: segment })))
+      )).flat();
+
+      if (extraResults.length > 0) {
+        candidates = rankLRCLibCandidates(
+          [...rawResults, ...extraResults],
+          parsedParams,
+          cleanedQuery || originalSearchQuery,
+          params.duration
+        );
+        bestMatch = candidates[0];
+      }
+    }
+  }
 
   // Try automatic search query refinement if initial search failed
   if (!bestMatch && (cleanedQuery || originalSearchQuery)) {

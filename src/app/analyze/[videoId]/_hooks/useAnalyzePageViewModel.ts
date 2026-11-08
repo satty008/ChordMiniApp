@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
 import { addToast, closeToast } from '@heroui/react';
 import { mergeToastClassNames } from '@/utils/toastStyles';
 import { useQueryClient } from '@tanstack/react-query';
@@ -693,10 +693,13 @@ export function useAnalyzePageViewModel({
   useYouTubeSetup(videoId, setAudioProcessingState);
 
   const appliedTimedLyrics = appliedGridLyrics?.timedLyrics ?? null;
+  // Re-laying out the lyrics grid is expensive (~0.5 s per change), so the shift is applied at low priority:
+  // the offset shown in the dialog updates at once and rapid nudges collapse into one grid update.
+  const deferredLyricsOffsetSeconds = useDeferredValue(lyricsOffsetSeconds);
   const shiftedTimedLyrics = useMemo(() => {
-    if (!appliedTimedLyrics || lyricsOffsetSeconds === 0) return appliedTimedLyrics;
-    return { ...appliedTimedLyrics, lyrics: shiftLyricsData(appliedTimedLyrics.lyrics, lyricsOffsetSeconds) };
-  }, [appliedTimedLyrics, lyricsOffsetSeconds]);
+    if (!appliedTimedLyrics || deferredLyricsOffsetSeconds === 0) return appliedTimedLyrics;
+    return { ...appliedTimedLyrics, lyrics: shiftLyricsData(appliedTimedLyrics.lyrics, deferredLyricsOffsetSeconds) };
+  }, [appliedTimedLyrics, deferredLyricsOffsetSeconds]);
   const visibleGridLyrics = isGridLyricsVisible ? shiftedTimedLyrics : null;
   const visiblePlainLyrics = isGridLyricsVisible ? appliedGridLyrics?.plainLyrics ?? null : null;
 
@@ -784,7 +787,7 @@ export function useAnalyzePageViewModel({
     setIsChatbotOpen(!isChatbotOpen);
   }, [isChatbotOpen]);
 
-  const applyLRCLibCandidate = useCallback((candidate: LRCLibCandidate, options?: { keepSearchOpen?: boolean }) => {
+  const applyLRCLibCandidate = useCallback((candidate: LRCLibCandidate) => {
     const timed = isTimedCandidate(candidate);
     if (!timed && !candidate.plain_lyrics) return;
 
@@ -810,14 +813,14 @@ export function useAnalyzePageViewModel({
       setLyricsOffsetSeconds(0);
     }
 
+    // The search panel stays open: the timing buttons live there and are what you reach for next.
     setIsGridLyricsVisible(true);
-    if (!options?.keepSearchOpen) setIsLyricsSearchOpen(false);
   }, [effectiveAnalysisDuration, videoId]);
 
   const applyUserLyrics = useCallback((
     rawText: string,
     filename?: string,
-    options?: { persist?: boolean; keepSearchOpen?: boolean },
+    options?: { persist?: boolean },
   ): UserLyricsApplyResult => {
     if (rawText.length > MAX_USER_LYRICS_CHARS) {
       return { ok: false, error: 'That is too large to be lyrics (limit about 200 KB).' };
@@ -845,7 +848,6 @@ export function useAnalyzePageViewModel({
 
     if (options?.persist !== false) saveUserLyrics(videoId, { text: rawText, filename });
     setIsGridLyricsVisible(true);
-    if (!options?.keepSearchOpen) setIsLyricsSearchOpen(false);
     return { ok: true, kind: parsed.kind };
   }, [effectiveAnalysisDuration, videoId]);
 
@@ -874,7 +876,7 @@ export function useAnalyzePageViewModel({
     if (restoredUserLyricsForRef.current === videoId) return;
     restoredUserLyricsForRef.current = videoId;
     const saved = loadUserLyrics(videoId);
-    if (saved) applyUserLyrics(saved.text, saved.filename, { persist: false, keepSearchOpen: true });
+    if (saved) applyUserLyrics(saved.text, saved.filename, { persist: false });
   }, [videoId, applyUserLyrics]);
 
   const runLRCLibLyricsSearch = useCallback(async (queryOverride?: string) => {
@@ -910,7 +912,7 @@ export function useAnalyzePageViewModel({
         // A cover of a known song: title matches strongly but the duration differs. Apply it, flagged as
         // timed to a different recording, and let the timing buttons line it up.
         if (highConfidenceTimed || isAutoApplicableCandidate(best)) {
-          applyLRCLibCandidate(best, { keepSearchOpen: true });
+          applyLRCLibCandidate(best);
         }
       }
     } catch (error) {
