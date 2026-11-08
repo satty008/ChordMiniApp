@@ -65,7 +65,7 @@ const SupportChordMini: React.FC = () => {
               </Button>
               <Button
                 as="a"
-                href="mailto:phantrongnghia510@gmail.com"
+                href="mailto:srnarayanan1989@gmail.com"
                 variant="light"
                 size="sm"
                 startContent={<HiMail className="w-4 h-4" />}

@@ -5,7 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { ApiKeyModalProps, API_KEY_HELP_URLS } from '@/types/apiKeyTypes';
 import { HiLightBulb, HiGift, HiInformationCircle } from 'react-icons/hi2';
 
-const SEGMENTATION_ACCESS_REQUEST_EMAIL = process.env.NEXT_PUBLIC_SEGMENTATION_ACCESS_REQUEST_EMAIL || 'phantrongnghia510@gmail.com';
+const SEGMENTATION_ACCESS_REQUEST_EMAIL = process.env.NEXT_PUBLIC_SEGMENTATION_ACCESS_REQUEST_EMAIL || 'srnarayanan1989@gmail.com';
 
 const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   isOpen,

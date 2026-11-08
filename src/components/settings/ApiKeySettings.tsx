@@ -5,7 +5,7 @@ import { Card, CardBody, Chip, Button, Progress } from '@heroui/react';
 import { ApiCredentialService, ApiKeySettingsProps, API_KEY_HELP_URLS } from '@/types/apiKeyTypes';
 import ApiKeyModal from './ApiKeyModal';
 
-const SEGMENTATION_ACCESS_REQUEST_EMAIL = process.env.NEXT_PUBLIC_SEGMENTATION_ACCESS_REQUEST_EMAIL || 'phantrongnghia510@gmail.com';
+const SEGMENTATION_ACCESS_REQUEST_EMAIL = process.env.NEXT_PUBLIC_SEGMENTATION_ACCESS_REQUEST_EMAIL || 'srnarayanan1989@gmail.com';
 
 const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({
   onApiKeyUpdate,

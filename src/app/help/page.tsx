@@ -149,7 +149,7 @@ const HelpPage: React.FC = () => {
               If you can&apos;t find the answer to your question, please reach out to our support team:
             </p>
             <div className="space-y-2">
-              <p><strong>Email Support:</strong> <a href="mailto:phantrongnghia510@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">phantrongnghia510@gmail.com</a></p>
+              <p><strong>Email Support:</strong> <a href="mailto:srnarayanan1989@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">srnarayanan1989@gmail.com</a></p>
               <p><strong>GitHub Issues:</strong> <a href="https://github.com/ptnghia-j/ChordMiniApp/issues" className="text-blue-600 dark:text-blue-400 hover:underline">Report bugs or request features</a></p>
               <p><strong>Response Time:</strong> We typically respond within 24-48 hours</p>
             </div>
