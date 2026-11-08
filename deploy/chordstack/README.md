@@ -18,3 +18,36 @@ Update: `git pull && docker compose pull && docker compose up -d --build`.
 - Frontend image is built by `.github/workflows/ghcr-frontend.yml` -> `ghcr.io/satty008/chordminiapp-frontend`.
 - Add the public hostname under Firebase Authentication -> Authorized domains.
 - Reverse proxy needs a long read timeout (analysis can take minutes) and ~200 MB body size.
+
+Browser check (optional, run from any machine, alone, because the backend has 2 workers):
+`cd e2e && npm i playwright && npx playwright install chromium && CLICK='Run analysis' UNTIL_GONE='Detecting Beats' node probe.mjs https://HOST/analyze/VIDEOID 420 out.png`
+
+## Changelog
+
+Versions here track the `deploy/chordstack` stack of this fork, independent of upstream ChordMini's own tags.
+
+### 0.1.0 - 2026-11-08
+
+First working self-hosted release: ChordMini + LiveChord + a front door, on one Docker host
+(deployed on a Proxmox VM behind Nginx Proxy Manager).
+
+#### Added
+- `deploy/chordstack`: compose stack (ChordMini frontend + backend, LiveChord CPU build, `riyaaz` front door),
+  `fetch-weights.sh` (sha256-verified BTC model), `smoke.sh` (API + browser-path checks), `e2e/probe.mjs` (Playwright).
+- `.github/workflows/ghcr-frontend.yml`: builds `ghcr.io/satty008/chordminiapp-frontend` (`:latest` and `:<commit sha>`).
+- Front door page with a one-time move of saved practice data to the renamed Music Theory app.
+
+#### Fixed
+- Self-hosted mode (`NEXT_PUBLIC_AUDIO_STRATEGY=ytdlp`) no longer hits dev-only gates; the SSRF guard allows only the
+  app's own `/api/serve-local-audio` (localhost or its own public hostname).
+- yt-dlp: newer binary mounted (YouTube rejects the bundled one); `--no-playlist` so radio-mix links (`list=RD...`) work.
+- Server-side calls to its own routes use the in-container address, not the public hostname.
+- With `NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE=1` the browser sends audio straight to the analysis routes instead of
+  uploading to a Firebase Storage bucket that does not exist (analysis used to retry forever).
+- Firestore admin rules and the access-request address use the owner's accounts (upstream maintainer addresses removed).
+- `melody-cache` answers "miss" instead of 500 when no Firestore admin credentials are configured.
+
+#### Known limitations
+- A 4-minute song takes about 2m13s on 3 vCPUs (beats and chords run in parallel). The backend has 2 gunicorn workers,
+  so a second analysis queues behind the first, and reloading does not cancel abandoned work.
+- Lyrics come from LRCLIB only; covers have no timing adjustment and there is no way to supply your own lyrics yet.
