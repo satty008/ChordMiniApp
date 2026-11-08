@@ -32,6 +32,19 @@ function isHostnameAllowed(hostname: string, allowedDomains: readonly string[]):
   return allowedDomains.some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
 }
 
+/**
+ * Self-hosted yt-dlp mode: the app's own local audio endpoint may be fetched
+ * server-side even outside NODE_ENV=development. Deliberately narrow: exact
+ * host, path and strategy only.
+ */
+export function isSelfHostedLocalAudioUrl(url: URL): boolean {
+  return (
+    process.env.NEXT_PUBLIC_AUDIO_STRATEGY === 'ytdlp' &&
+    ['localhost', '127.0.0.1'].includes(url.hostname) &&
+    url.pathname === '/api/serve-local-audio'
+  );
+}
+
 function isDevelopmentLocalhost(url: URL): boolean {
   if (process.env.NODE_ENV !== 'development') {
     return false;
@@ -80,7 +93,9 @@ export function parseAndValidateAudioSourceUrl(
   } catch {
     throw new Error('Invalid URL format');
   }
-  const isLocalhost = allowDevelopmentLocalhost && isDevelopmentLocalhost(parsedUrl);
+  const isLocalhost =
+    (allowDevelopmentLocalhost && isDevelopmentLocalhost(parsedUrl)) ||
+    isSelfHostedLocalAudioUrl(parsedUrl);
   const isHttp = parsedUrl.protocol === 'http:';
   const isHttps = parsedUrl.protocol === 'https:';
 

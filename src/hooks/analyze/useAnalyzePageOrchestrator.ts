@@ -403,6 +403,12 @@ export function useAnalyzePageOrchestrator({
     }
 
     const cachedAudioPromise = (async () => {
+      // Self-hosted setups without a Storage bucket: skip the (otherwise timing-out) lookup.
+      const { loadPublicConfig } = await import('@/config/publicConfig');
+      const publicConfig = await loadPublicConfig();
+      if (publicConfig.NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE === '1') {
+        return null;
+      }
       const { withFirebaseConnectionCheck } = await import('@/utils/firebaseConnectionManager');
       return withFirebaseConnectionCheck(async () => {
         const { getCachedAudioFile } = await import('@/services/firebase/firebaseStorageService');

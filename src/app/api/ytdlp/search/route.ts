@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Block in production
-  if (!isDevelopment) {
+  // Block in production unless yt-dlp is explicitly enabled
+  if (!isDevelopment && !allowYtDlpInProduction) {
     return NextResponse.json(
       { 
         success: false, 

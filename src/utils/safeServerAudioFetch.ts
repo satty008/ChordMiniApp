@@ -2,6 +2,7 @@ import { lookup } from 'node:dns/promises';
 import { BlockList, isIP } from 'node:net';
 
 import {
+  isSelfHostedLocalAudioUrl,
   parseAndValidateAudioSourceUrl,
   type SafeAudioSourceValidationOptions,
 } from './urlValidationUtils';
@@ -53,9 +54,10 @@ function isDevelopmentLocalhostAllowed(
   options: SafeAudioSourceValidationOptions
 ): boolean {
   return (
-    options.allowDevelopmentLocalhost === true &&
-    process.env.NODE_ENV === 'development' &&
-    ['localhost', '127.0.0.1'].includes(url.hostname)
+    (options.allowDevelopmentLocalhost === true &&
+      process.env.NODE_ENV === 'development' &&
+      ['localhost', '127.0.0.1'].includes(url.hostname)) ||
+    isSelfHostedLocalAudioUrl(url)
   );
 }
 

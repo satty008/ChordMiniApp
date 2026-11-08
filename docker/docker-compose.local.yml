@@ -1,0 +1,14 @@
+# Local override: published backend image + frontend built from this checkout.
+# Usage: docker compose -f docker/docker-compose.yml -f docker/docker-compose.local.yml --env-file .env.docker up -d --build frontend
+services:
+  frontend:
+    image: chordminiapp-frontend:local
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: runner
+    environment:
+      # Set to 1 when no Firebase Storage bucket exists (skips the cached-audio lookup).
+      - NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE=${NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE:-0}
+    volumes:
+      - ./bin/yt-dlp:/usr/bin/yt-dlp:ro

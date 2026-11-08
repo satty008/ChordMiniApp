@@ -11,8 +11,11 @@ import { readFile, stat } from 'fs/promises';
 import { basename } from 'path';
 import { findLocalAudioFileByFilename } from '@/services/storage/localAudioStorageService';
 
-// Only allow in development environment
-const isDevelopment = process.env.NODE_ENV === 'development';
+// Only allow in development, or when local yt-dlp extraction is explicitly enabled
+// (self-hosted setups set NEXT_PUBLIC_AUDIO_STRATEGY=ytdlp).
+const isDevelopment =
+  process.env.NODE_ENV === 'development' ||
+  process.env.NEXT_PUBLIC_AUDIO_STRATEGY === 'ytdlp';
 
 export async function GET(request: NextRequest) {
   // Block in production
