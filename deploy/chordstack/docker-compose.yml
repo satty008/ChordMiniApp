@@ -1,0 +1,62 @@
+# chordstack: ChordMini (frontend + backend) and LiveChord on one Docker host.
+# Run from this directory:  docker compose --env-file .env.docker up -d
+# Host ports: chordmini 3100, livechord 8800 (put a reverse proxy in front).
+name: chordstack
+
+services:
+  chordmini-frontend:
+    image: ghcr.io/satty008/chordminiapp-frontend:latest
+    container_name: chordmini-frontend
+    ports:
+      - "3100:3000"
+    env_file: .env.docker
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - PYTHON_API_URL=http://chordmini-backend:8080
+      - NEXT_PUBLIC_PYTHON_API_URL=http://chordmini-backend:8080
+      - SONGFORMER_API_URL=http://chordmini-backend:8080
+      - SHEETSAGE_API_URL=http://chordmini-backend:8080
+      - NEXT_PUBLIC_BASE_URL=${CHORDMINI_BASE_URL:-http://localhost:3100}
+      - SONGFORMER_CALLBACK_BASE_URL=http://localhost:3000
+    volumes:
+      # Newer yt-dlp than the one baked into the image (YouTube rejects old versions).
+      - ../../docker/bin/yt-dlp:/usr/bin/yt-dlp:ro
+    depends_on:
+      - chordmini-backend
+    restart: unless-stopped
+
+  chordmini-backend:
+    image: ptnghia/chordminiapp-backend:latest
+    container_name: chordmini-backend
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=False
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - DEFAULT_BEAT_MODEL=beat-transformer
+      - DEFAULT_CHORD_MODEL=chord-cnn-lstm
+      - MAX_CONTENT_LENGTH=104857600
+      - UPLOAD_TIMEOUT=600
+    volumes:
+      - chordmini-backend-cache:/tmp/model_cache
+    restart: unless-stopped
+
+  livechord:
+    # CPU-only build of the satty008/LiveChord fork (branch selfhost, AGPL-3.0).
+    build:
+      context: https://github.com/satty008/LiveChord.git#selfhost
+      dockerfile: Dockerfile.cpu
+    image: livechord:cpu
+    container_name: livechord
+    ports:
+      - "8800:8800"
+    environment:
+      - LIVECHORD_MODE=public
+    volumes:
+      - ./data/livechord:/app/data
+      - ./data/btc_model_large_voca.pt:/app/backend/btc/btc_model_large_voca.pt:ro
+    restart: unless-stopped
+
+volumes:
+  chordmini-backend-cache:
