@@ -5,6 +5,7 @@
  * serverless multipart body limit.
  */
 
+import { getCachedConfig } from '@/config/publicConfig';
 import { createSafeTimeoutSignal } from '@/utils/environmentUtils';
 import { isLocalBackend } from '@/utils/backendConfig';
 import { getAppCheckTokenForApi } from '@/config/firebase';
@@ -34,6 +35,16 @@ class OffloadUploadService {
     return typeof window === 'undefined';
   }
 
+  /**
+   * Runtime flag (served via /api/config) for deployments that have no Firebase Storage bucket.
+   */
+  private isFirebaseStorageDisabled(): boolean {
+    const flag = typeof window !== 'undefined'
+      ? getCachedConfig()?.NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE
+      : process.env.NEXT_PUBLIC_DISABLE_FIREBASE_STORAGE;
+    return flag === '1';
+  }
+
   private isFirebaseConfigured(): boolean {
     if (typeof window !== 'undefined') {
       return true;
@@ -51,6 +62,11 @@ class OffloadUploadService {
    * Local development stays on direct multipart uploads.
    */
   shouldUseOffloadUpload(fileSize?: number): boolean {
+    // Self-hosted without a Firebase Storage bucket: always use direct multipart uploads.
+    if (this.isFirebaseStorageDisabled()) {
+      return false;
+    }
+
     if (this.isLocalhostDevelopment()) {
       return false;
     }
@@ -76,7 +92,7 @@ class OffloadUploadService {
    * Check whether Firebase offload upload is available.
    */
   isOffloadUploadAvailable(): boolean {
-    return this.isFirebaseConfigured();
+    return !this.isFirebaseStorageDisabled() && this.isFirebaseConfigured();
   }
 
   /**
