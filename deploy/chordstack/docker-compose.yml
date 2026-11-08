@@ -1,6 +1,6 @@
 # chordstack: ChordMini (frontend + backend) and LiveChord on one Docker host.
 # Run from this directory:  docker compose --env-file .env.docker up -d
-# Host ports: chordmini 3100, livechord 8800 (put a reverse proxy in front).
+# Host ports: frontdoor 3200, chordmini 3100, livechord 8800 (put a reverse proxy in front).
 name: chordstack
 
 services:
@@ -40,6 +40,16 @@ services:
       - UPLOAD_TIMEOUT=600
     volumes:
       - chordmini-backend-cache:/tmp/model_cache
+    restart: unless-stopped
+
+  frontdoor:
+    # Landing page served at the main hostname; links out to musictheory / chordmini / livechord.
+    image: nginx:1.27-alpine
+    container_name: frontdoor
+    ports:
+      - "3200:80"
+    volumes:
+      - ./frontdoor:/usr/share/nginx/html:ro
     restart: unless-stopped
 
   livechord:

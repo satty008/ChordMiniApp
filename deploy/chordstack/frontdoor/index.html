@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Riyaaz</title>
+<meta name="description" content="Guitar practice, chord detection and live chord analysis in one place.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2315121F'/%3E%3Cpath d='M9 22V10m7 12V10m7 12V10' stroke='%23F4A93C' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15121F; --bg-2:#1C1830; --surface:#232036; --surface-2:#2B2742; --line:#383351;
+    --text:#F3ECDF; --muted:#9A92AE; --marigold:#F4A93C; --teal:#57B79E; --indigo:#7C72D6; --rose:#C0603C;
+    --radius:16px; --shadow:0 18px 50px -22px rgba(0,0,0,.7);
+  }
+  :root[data-theme="light"]{
+    --bg:#F6F1E7; --bg-2:#EFE8DA; --surface:#FFFFFF; --surface-2:#F3EDE0; --line:#DDD3BF;
+    --text:#241E33; --muted:#6C6480; --marigold:#C77C0A; --teal:#2E8B72; --indigo:#5A50B8; --rose:#A5482A;
+    --shadow:0 14px 36px -22px rgba(60,40,10,.35);
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#F6F1E7; --bg-2:#EFE8DA; --surface:#FFFFFF; --surface-2:#F3EDE0; --line:#DDD3BF;
+      --text:#241E33; --muted:#6C6480; --marigold:#C77C0A; --teal:#2E8B72; --indigo:#5A50B8; --rose:#A5482A;
+      --shadow:0 14px 36px -22px rgba(60,40,10,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; color:var(--text); font:16px/1.55 'Inter',system-ui,-apple-system,sans-serif;
+    background:
+      radial-gradient(1100px 560px at 85% -10%, color-mix(in srgb,var(--marigold) 14%,transparent), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, color-mix(in srgb,var(--indigo) 16%,transparent), transparent 55%),
+      var(--bg);
+  }
+  main{max-width:1040px;margin:0 auto;padding:56px 16px 40px}
+  header{margin-bottom:36px}
+  .eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--marigold)}
+  h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(40px,8vw,72px);line-height:1;margin:8px 0 12px;letter-spacing:-.02em}
+  .lede{color:var(--muted);max-width:56ch;margin:0;font-size:17px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media (max-width:820px){.grid{grid-template-columns:1fr}}
+  a.card{
+    display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 22px 20px;box-shadow:var(--shadow);transition:transform .15s,border-color .15s;
+  }
+  a.card:hover,a.card:focus-visible{transform:translateY(-3px);border-color:var(--accent);outline:none}
+  a.card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .card .icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+  .card h2{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:24px;margin:6px 0 0;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--muted);font-size:15px;flex:1}
+  .card .foot{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:6px}
+  .status{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);opacity:.6}
+  .dot.up{background:var(--teal);opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 25%,transparent)}
+  .dot.down{background:var(--rose);opacity:1}
+  .open{font-weight:600;color:var(--accent)}
+  .theory{--accent:var(--marigold)} .chordmini{--accent:var(--teal)} .livechord{--accent:var(--indigo)}
+  #migrate{display:none;margin:0 0 24px;padding:16px 18px;background:var(--surface-2);border:1px solid var(--line);border-left:4px solid var(--marigold);border-radius:12px}
+  #migrate.show{display:block}
+  #migrate strong{font-weight:600}
+  #migrate p{margin:4px 0 12px;color:var(--muted);font-size:14.5px}
+  button{font:inherit;font-weight:600;font-size:14px;cursor:pointer;border-radius:10px;padding:9px 16px;border:1px solid var(--line);background:var(--surface);color:var(--text)}
+  button.primary{background:var(--marigold);color:#1d1305;border-color:transparent}
+  button:focus-visible{outline:2px solid var(--marigold);outline-offset:2px}
+  footer{margin-top:40px;color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap}
+  @media (prefers-reduced-motion:reduce){a.card{transition:none}a.card:hover{transform:none}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Practice &middot; Detect &middot; Analyse</div>
+    <h1>Riyaaz</h1>
+    <p class="lede">One home for guitar practice and song analysis. Learn theory, drop in a YouTube link to get chords, or upload a recording for a detailed chord chart.</p>
+  </header>
+
+  <section id="migrate" aria-live="polite">
+    <strong>Saved practice data found on this address</strong>
+    <p id="migrate-msg">Music Theory moved to its own address. Copy your saved progress there once; the original is left untouched.</p>
+    <button class="primary" id="migrate-go" type="button">Move my data to Music Theory</button>
+  </section>
+
+  <div class="grid">
+    <a class="card theory" id="c-theory" href="https://musictheory.debugndeadlift.duckdns.org/">
+      <span class="icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="12" r="2.2" fill="currentColor"/></svg></span>
+      <h2>Music Theory</h2>
+      <p>Guitar theory trainer: scales, chords, ear training and daily practice, with your streak saved in the browser.</p>
+      <div class="foot"><span class="status"><span class="dot" data-s="theory"></span><span>checking&hellip;</span></span><span class="open">Open &rarr;</span></div>
+    </a>
+    <a class="card chordmini" id="c-chordmini" href="https://chordmini.debugndeadlift.duckdns.org/">
+      <span class="icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span>
+      <h2>ChordMini</h2>
+      <p>Paste a YouTube link and get chords, beats, key and transposing. Works for covers and regional songs.</p>
+      <div class="foot"><span class="status"><span class="dot" data-s="chordmini"></span><span>checking&hellip;</span></span><span class="open">Open &rarr;</span></div>
+    </a>
+    <a class="card livechord" id="c-livechord" href="https://livechord.debugndeadlift.duckdns.org/">
+      <span class="icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h3l2-6 4 12 3-9 2 3h4"/></svg></span>
+      <h2>LiveChord</h2>
+      <p>Upload a recording for chord-by-chord analysis of live and unplugged performances.</p>
+      <div class="foot"><span class="status"><span class="dot" data-s="livechord"></span><span>checking&hellip;</span></span><span class="open">Open &rarr;</span></div>
+    </a>
+  </div>
+
+  <footer>
+    <span>Self-hosted</span>
+    <a style="color:inherit" href="https://musictheory.debugndeadlift.duckdns.org/">Music Theory</a>
+    <a style="color:inherit" href="https://chordmini.debugndeadlift.duckdns.org/">ChordMini</a>
+    <a style="color:inherit" href="https://livechord.debugndeadlift.duckdns.org/">LiveChord</a>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var THEORY="https://musictheory.debugndeadlift.duckdns.org";
+
+  // Reachability dots: a no-cors request resolves when the host answers at all.
+  [["theory","c-theory"],["chordmini","c-chordmini"],["livechord","c-livechord"]].forEach(function(p){
+    var dot=document.querySelector('[data-s="'+p[0]+'"]'), label=dot.nextElementSibling;
+    var url=document.getElementById(p[1]).href;
+    var ctl=new AbortController(), t=setTimeout(function(){ctl.abort()},6000);
+    fetch(url,{mode:"no-cors",cache:"no-store",signal:ctl.signal})
+      .then(function(){dot.className="dot up";label.textContent="online"})
+      .catch(function(){dot.className="dot down";label.textContent="unreachable"})
+      .finally(function(){clearTimeout(t)});
+  });
+
+  // One-time move of saved data from this address (the old home of the app) to musictheory.
+  var KEY="riyaaz", DONE="riyaaz_migrated", banner=document.getElementById("migrate"),
+      msg=document.getElementById("migrate-msg"), btn=document.getElementById("migrate-go"), payload=null;
+  try{ payload=localStorage.getItem(KEY); if(payload&&!localStorage.getItem(DONE)) banner.className="show"; }catch(e){}
+
+  function send(force){
+    btn.disabled=true; btn.textContent="Moving…";
+    var f=document.createElement("iframe"); f.style.display="none"; f.src=THEORY+"/"; f.setAttribute("aria-hidden","true");
+    var timer=setTimeout(function(){fail("Could not reach Music Theory. Try again in a moment.")},12000);
+    function fail(t){clearTimeout(timer);window.removeEventListener("message",on);f.remove();msg.textContent=t;btn.disabled=false;btn.textContent="Try again"}
+    function on(e){
+      if(e.origin!==THEORY||!e.data||e.data.type!=="riyaaz-migrate-result")return;
+      clearTimeout(timer);window.removeEventListener("message",on);f.remove();
+      if(e.data.ok){
+        try{localStorage.setItem(DONE,"1")}catch(x){}
+        msg.innerHTML='Done. Your progress is now in <a style="color:var(--marigold)" href="'+THEORY+'/">Music Theory</a>.';
+        btn.style.display="none";
+      }else if(e.data.reason==="exists"){
+        msg.textContent="Music Theory already has saved data in this browser. Replace it with the data from this address?";
+        btn.disabled=false;btn.textContent="Replace it";btn.onclick=function(){send(true)};
+      }else fail("Move failed: "+e.data.reason);
+    }
+    window.addEventListener("message",on);
+    f.onload=function(){f.contentWindow.postMessage({type:"riyaaz-migrate",payload:payload,force:!!force},THEORY)};
+    document.body.appendChild(f);
+  }
+  btn.onclick=function(){send(false)};
+})();
+</script>
+</body>
+</html>
