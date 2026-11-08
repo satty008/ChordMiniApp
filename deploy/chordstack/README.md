@@ -44,17 +44,27 @@ Browser check (optional, run from any machine, alone, because the backend has 2 
 
 Versions here track the `deploy/chordstack` stack of this fork, independent of upstream ChordMini's own tags.
 
-### Unreleased
+### 0.2.0 - 2026-11-08
+
+Lyrics for covers and for songs LRCLIB lacks, plus release tooling.
 
 #### Added
 - Lyrics: timing buttons (-1, -0.5, +0.5, +1 s) to line up lyrics borrowed from another recording; the offset is remembered per video.
 - Lyrics: use your own lyrics - paste text or upload a `.lrc`/`.txt` file (timed lines become synced lyrics); saved in the browser per video.
 - Lyrics: synced LRCLIB lyrics whose title clearly matches the video are applied automatically even when the duration differs (covers).
 - `e2e/lyrics-e2e.mjs`: browser test of the lyrics features.
+- CI publishes `ghcr.io/satty008/chordminiapp-frontend:<x.y.z>` for every `v<x.y.z>` tag (a newer push replaces an older build, so `:latest` cannot land on an older commit).
+- `releases/<version>.yml` pin files (0.1.0 and 0.2.0) fix every image and source, so a host can follow or roll back to a release with one `COMPOSE_FILE` line.
 
 #### Fixed
 - LRCLIB found nothing for titles like `Song | Singer | Ukulele Cover | Film | Artist`: the pieces of the title are now searched separately, with cover/format words removed, and a song named in the title outranks other songs by the same singer.
 - Among same-song candidates whose duration does not match, the closer recording now ranks higher.
+- The lyrics panel no longer closes when follow mode scrolls the page, and stays open after applying lyrics.
+- The upstream author's e-mail address no longer appears in the footer, About, Help, Support or access-request screens.
+
+#### Known limitations
+- Lyrics come from LRCLIB or a file you supply; songs LRCLIB lacks (many Malayalam covers) need your own lyrics until transcription is added.
+- Analysis speed and the 2-worker backend are unchanged from 0.1.0.
 
 ### 0.1.0 - 2026-11-08
 
