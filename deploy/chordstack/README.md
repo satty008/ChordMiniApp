@@ -19,6 +19,24 @@ Update: `git pull && docker compose pull && docker compose up -d --build`.
 - Add the public hostname under Firebase Authentication -> Authorized domains.
 - Reverse proxy needs a long read timeout (analysis can take minutes) and ~200 MB body size.
 
+## Releases and pinning
+
+`main` is rolling: frontend `:latest`, LiveChord's `selfhost` branch and upstream's backend `:latest`. Every release has a
+pin file in `releases/` that fixes all of them (images by tag or digest, LiveChord by commit):
+
+```bash
+docker compose -f docker-compose.yml -f releases/0.1.0.yml pull --ignore-buildable
+docker compose -f docker-compose.yml -f releases/0.1.0.yml up -d
+```
+
+To make a host follow a release, put `COMPOSE_FILE=docker-compose.yml:releases/0.1.0.yml` in that host's `.env` (this
+directory); plain `docker compose ...` then uses the pins. Rolling back means pointing `COMPOSE_FILE` at the previous
+release's file.
+
+CI publishes `ghcr.io/satty008/chordminiapp-frontend:<commit sha>` for every build, `:latest` for `main`, and `:<x.y.z>`
+for every `v<x.y.z>` tag. To cut a release: merge to `main`, add `releases/<x.y.z>.yml` (frontend `:<x.y.z>`) and the
+changelog entry, create `release/<x.y.z>` from `main`, and tag `v<x.y.z>`; the tag build publishes the image.
+
 Browser check (optional, run from any machine, alone, because the backend has 2 workers):
 `cd e2e && npm i playwright && npx playwright install chromium && CLICK='Run analysis' UNTIL_GONE='Detecting Beats' node probe.mjs https://HOST/analyze/VIDEOID 420 out.png`
 
