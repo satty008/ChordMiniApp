@@ -1,0 +1,15 @@
+# Release 0.1.0 (git tag v0.1.0): every image and source pinned. Use it on top of the base file:
+#   docker compose -f docker-compose.yml -f releases/0.1.0.yml up -d
+# or set it once for a host in this directory's .env:
+#   COMPOSE_FILE=docker-compose.yml:releases/0.1.0.yml
+services:
+  chordmini-frontend:
+    image: ghcr.io/satty008/chordminiapp-frontend:bb0a3f4ad6f3418cb2dff82263feee67497698ed
+  chordmini-backend:
+    image: ptnghia/chordminiapp-backend@sha256:55c700284022ff446fb4e2a0713ca0923c70b0464926082c1d662999b2f2aca9
+  livechord:
+    build:
+      context: https://github.com/satty008/LiveChord.git#c1f0b83e451053db85516aa97b53708024159cf6
+      dockerfile: Dockerfile.cpu
+  frontdoor:
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
